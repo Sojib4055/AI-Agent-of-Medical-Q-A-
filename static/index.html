@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medical AI Agent</title>
+    <style>
+      :root {
+        color: #0f172a;
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: linear-gradient(135deg, #e0f4ff, #e9e9ff);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .card {
+        width: min(960px, 100%);
+        background: #ffffffee;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+        padding: 28px;
+        display: grid;
+        gap: 20px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .pill {
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #0ea5e9;
+        color: white;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 140px;
+        padding: 14px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        font-size: 15px;
+        resize: vertical;
+        color: #0f172a;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+      }
+      .actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      button {
+        border: none;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        color: white;
+        background: linear-gradient(135deg, #0ea5e9, #6366f1);
+        box-shadow: 0 12px 30px rgba(14, 165, 233, 0.3);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 32px rgba(14, 165, 233, 0.35);
+      }
+      button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .answer {
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #f8fafc;
+        padding: 16px;
+        min-height: 140px;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #0f172a;
+      }
+      .muted {
+        color: #64748b;
+        font-size: 14px;
+      }
+      .error {
+        color: #b91c1c;
+        font-weight: 600;
+        margin-top: 4px;
+      }
+      footer {
+        font-size: 12px;
+        color: #94a3b8;
+        text-align: right;
+      }
+      @media (max-width: 640px) {
+        body {
+          padding: 12px;
+        }
+        .card {
+          padding: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div>
+          <p class="label" style="margin:0 0 4px;">Multi-Tool Medical Agent</p>
+          <h1 class="title">Ask a question</h1>
+          <p class="muted" style="margin:4px 0 0;">Routes to datasets (Heart, Cancer, Diabetes) or web search.</p>
+        </div>
+        <div class="pill">Backend: FastAPI + Groq</div>
+      </div>
+
+      <div>
+        <p class="label">Question</p>
+        <form id="ask-form">
+          <textarea id="question" name="question" placeholder="e.g., What is the average age in the heart dataset?"></textarea>
+          <div class="actions">
+            <span class="muted">Ctrl+Enter to submit</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;">
+              <button id="submit-btn" type="submit">Ask Agent</button>
+              <span id="status" class="muted"></span>
+            </div>
+          </div>
+        </form>
+        <div id="error" class="error" style="display:none;"></div>
+      </div>
+
+      <div>
+        <p class="label">Answer</p>
+        <div id="answer" class="answer">
+          <span class="muted">No answer yet.</span>
+        </div>
+      </div>
+
+      <footer>Runs entirely via FastAPI; no React build required.</footer>
+    </div>
+
+    <script>
+      const form = document.getElementById("ask-form");
+      const questionInput = document.getElementById("question");
+      const statusEl = document.getElementById("status");
+      const answerEl = document.getElementById("answer");
+      const errorEl = document.getElementById("error");
+      const submitBtn = document.getElementById("submit-btn");
+
+      function setLoading(isLoading) {
+        submitBtn.disabled = isLoading;
+        statusEl.textContent = isLoading ? "Thinking..." : "";
+      }
+
+      async function submitQuestion(text) {
+        setLoading(true);
+        errorEl.style.display = "none";
+        answerEl.innerHTML = '<span class="muted">Waiting for answer...</span>';
+        try {
+          const res = await fetch("/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: text })
+          });
+          if (!res.ok) {
+            const t = await res.text();
+            throw new Error(t || "Request failed");
+          }
+          const data = await res.json();
+          answerEl.textContent = data.answer || "No answer returned.";
+        } catch (err) {
+          errorEl.textContent = err.message || "Something went wrong.";
+          errorEl.style.display = "block";
+          answerEl.innerHTML = '<span class="muted">No answer.</span>';
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const text = questionInput.value.trim();
+        if (!text) return;
+        submitQuestion(text);
+      });
+
+      questionInput.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "Enter") {
+          e.preventDefault();
+          const text = questionInput.value.trim();
+          if (!text) return;
+          submitQuestion(text);
+        }
+      });
+    </script>
+  </body>
+</html>

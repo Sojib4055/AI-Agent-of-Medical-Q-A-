@@ -1,0 +1,23 @@
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-core>=0.2.0
+
+# Groq integration
+langchain-groq>=0.1.0
+groq
+
+# You can REMOVE langchain-openai if you want, not needed anymore
+# langchain-openai
+
+python-dotenv
+pandas
+numpy
+sqlalchemy
+sqlite-utils
+fastapi
+uvicorn
+tavily-python
+google-search-results
+jupyter
+ipykernel
+requests
