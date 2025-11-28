@@ -36,7 +36,7 @@ This project implements a **Multi-Tool AI Agent** that can:
 -   Groq LLaMA3 Models\
 -   Tavily Web Search API\
 -   SQLite databases\
--   Python 3.11
+-   Python 3.10
 
 ------------------------------------------------------------------------
 
@@ -154,4 +154,4 @@ treatment.
     python -m src.data_prep.csv_to_sqlite
     uvicorn src.api.app:app --reload
 
-Enjoy your Multi-Tool Medical AI Agent! 🧠🩺
+Enjoy your Multi-Tool Medical AI Agent!
